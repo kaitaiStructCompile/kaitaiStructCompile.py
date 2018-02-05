@@ -1,0 +1,5 @@
+include UNLICENSE
+include *.md
+include tests
+include .editorconfig
+global-include *.json

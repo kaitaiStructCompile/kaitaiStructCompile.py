@@ -1,0 +1,253 @@
+{
+	"title": "kaitaiStructCompile setuptools config",
+	"description": "A config for kaitaiStructCompile setuptools plugin",
+	"type": "object",
+	
+	"definitions" : {
+		"compilerFlags":{
+			"title": "kaitaiStructCompile compile **kwargs",
+			"description": "A schema for kwargs of `compile` function",
+			"properties" : {
+				"readStoresPos":{
+					"description": "Enable saving info about offsets",
+					"type" : "boolean",
+					"default": false
+				},
+				"autoRead":{
+					"description": "automatically calling `_read`",
+					"type" : "boolean",
+					"default": true
+				},
+				"verbose":{
+					"description": "ptint diagnostics on these topics",
+					"type" : "array",
+					"default": [],
+					"items":{
+						"type": "string"
+					}
+				},
+				"opaqueTypes":{
+					"description": "Allow referring undefined types assumming that they are defined and follow the protocol",
+					"type" : "boolean",
+					"default": false
+				},
+				"namespaces":{
+					"$ref" : "#/definitions/namespacesSpec"
+				},
+				"additionalFlags" : {
+					"description": "new flags having no special support in the library are here",
+					"$ref" : "#/definitions/additionalFlags"
+				}
+			},
+			"additionalProperties" : false
+		},
+		"additionalFlags": {
+			"description": "Additional flags to pass to the compiler",
+			"type": "array",
+			"default": [],
+			"items":{
+				"type": "string"
+			}
+		},
+		"namespacesSpec" : {
+			"type" : "object",
+			"description": "Allows to rename packages. For python you usually need `.`.",
+			"properties" : {
+				"python" : {"type" : "string", "default": "."},
+				"go" : {"type" : "string", "default": ""},
+				"jre" : {"type" : "string", "default": ""},
+				"dotNet" : {"type" : "string", "default": ""},
+				"php" : {"type" : "string", "default": ""},
+				"nim" : {"type" : "string", "default": ""},
+				"cpp" : {"type" : "string", "default": ""}
+			},
+			"default": {"python":"."},
+			"additionalProperties" : false
+		},
+		"compilationTargetSpec" : {
+			"type" : "object",
+			"description": "A descriptor of a KSY file to be processed",
+			"properties" : {
+				"path" : {
+					"description": "A path to a KSY file",
+					"format" : "path"
+				},
+				"flags" : {
+					"$ref" : "#/definitions/compilerFlags"
+				},
+				"postprocess" : {
+					"$ref" : "#/definitions/postprocess"
+				}
+			},
+			"required" : ["path"],
+			"additionalProperties" : false
+		},
+		"formatsDict" : {
+			"type" : "object",
+			"description": "A dictionary of ksy files to be converted into python files",
+			"additionalProperties" : {
+				"$ref" : "#/definitions/compilationTargetSpec"
+			}
+		},
+		"formatsRepoRefspec":{
+			"description": "Describes a repo of formats.",
+			"type" : "object",
+			"required" : ["formats"],
+			"properties" : {
+				"git" : {
+					"description": "A path to formats directory git repo to clone it",
+					"type" : "string",
+					"format" : "URI",
+					"default": "https://github.com/kaitai-io/kaitai_struct_formats.git"
+				},
+				"refspec" : {
+					"description": "git refspec (a branch, tag, commit, etc)",
+					"type" : "string",
+					"default": ""
+				},
+				"update" : {
+					"type" : "boolean",
+					"description": "Download the latest version of the directory by path specified with `git` param",
+					"default": false
+				},
+				"prepend" : {
+					"type" : "boolean",
+					"description": "The fetched dir should be prepended to KSY library paths",
+					"default": true
+				},
+				"formats" : {
+					"$ref" : "#/definitions/formatsDict"
+				},
+				"outputDir" : {
+					"$ref" : "#/definitions/outputDir"
+				},
+				"inputDir" : {
+					"$ref" : "#/definitions/inputDir"
+				},
+				"localPath" : {
+					"$ref" : "#/definitions/localPath"
+				},
+				"search":{
+					"$ref" : "#/definitions/search"
+				},
+				"postprocessors" : {
+					"$ref" : "#/definitions/postprocessors"
+				}
+			},
+			"additionalProperties" : false
+		},
+		"postprocess": {
+			"anyOf": [
+				{ "$ref" : "#/definitions/postprocessList" },
+				{ "$ref" : "#/definitions/postprocessDict" }
+			]
+		},
+		"postprocessList": {
+			"type": "array",
+			"default": [],
+			"description": "The names of postprocessing functions to use against this file",
+			"items":{
+				"type": "string"
+			}
+		},
+		"postprocessDict": {
+			"type": "object",
+			"default": [],
+			"description": "The names of postprocessing functions to use against this file",
+			"additionalProperties":{
+				"type": "array"
+			}
+		},
+		"formatsRepo" : {
+			"description": "A dict mapping repos URIs to the objects specifying refspecs within them.",
+			"type" : "object",
+			"additionalProperties" : {
+				"$ref" : "#/definitions/formatsRepoRefspec"
+			}
+		},
+		"postprocessors":{
+			"description": "A dict of functions and their names to ref them by names.",
+			"type" : "object",
+			"additionalProperties" : {
+				"format" : "function"
+			},
+			"default": {}
+		},
+		"outputDir" : {
+			"description": "A path to a dir to output results",
+			"format" : "path",
+			"default": null
+		},
+		"inputDir" : {
+			"description": "A path to a dir with ksy files",
+			"format" : "path",
+			"default": null
+		},
+		"search":{
+			"description": "Whether input dir should be searched for `*.ksy`s",
+			"type" : "boolean",
+			"default": false
+		},
+		"localPath" : {
+			"format" : "path",
+			"description": "A local path to formats directory dir",
+			"default": null
+		},
+		"prefixPath" : {
+			"description": "A path prepended to all paths. You usually should not set it, it is populated automatically",
+			"format" : "path",
+			"default": "."
+		}
+	},
+
+	"properties" : {
+		"enabled": {
+			"description": "Allows you to disable transpilation of KSYs. May be used for different flavours of the same lib.",
+			"type" : "boolean",
+			"default": true
+		},
+		"repos" : {
+			"type" : "object",
+			"additionalProperties" : {
+				"$ref" : "#/definitions/formatsRepo"
+			}
+		},
+		"postprocessors" : {
+			"$ref" : "#/definitions/postprocessors"
+		},
+		"kaitaiStructRoot" : {
+			"description": "A path to Kaitai Struct root directory",
+			"format" : "path",
+			"default": null
+		},
+		"prefixPath" : {
+			"$ref" : "#/definitions/prefixPath"
+		},
+		"localPath" : {
+			"$ref" : "#/definitions/localPath"
+		},
+		"outputDir" : {
+			"$ref" : "#/definitions/outputDir"
+		},
+		"inputDir" : {
+			"$ref" : "#/definitions/inputDir"
+		},
+		"search":{
+			"$ref" : "#/definitions/search"
+		},
+		"flags":{
+			"$ref" : "#/definitions/compilerFlags"
+		},
+		"tolerableIssues":{
+			"description": "Tolerable backends issues. Backends having any intolerable issues are not activated.",
+			"type" : "array",
+			"default": []
+		},
+		"forceBackend":{
+			"description": "Use only this backend, if it is not available, return error.",
+			"type" : ["string", "null"],
+			"default": null
+		}
+	},
+	"additionalProperties" : false
+}

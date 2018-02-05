@@ -1,0 +1,77 @@
+image: registry.gitlab.com/kaitaistructcompile.py/kaitai_struct_python_docker:latest
+
+stages:
+  - build
+  - test
+  - tooling
+
+variables:
+  GIT_DEPTH: "1"
+  DOCKER_DRIVER: overlay2
+  SAST_ANALYZER_IMAGE_TAG: latest
+  SAST_DISABLE_DIND: "true"
+  SAST_CONFIDENCE_LEVEL: 5
+  CODECLIMATE_VERSION: latest
+
+include:
+  - template: SAST.gitlab-ci.yml
+  - template: Code-Quality.gitlab-ci.yml
+
+build:
+  tags:
+    - shared
+    - linux
+  stage: build
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
+    PYTHONUSERBASE: ${CI_PROJECT_DIR}/python_user_packages
+
+  before_script:
+    - export PATH="$PATH:$PYTHONUSERBASE/bin" # don't move into `variables`
+    - git clone --depth=1 https://gitlab.com/kaitaiStructCompile.py/kaitaiStructCompile.tests.ksys ./tests/ksys
+
+  cache:
+    paths:
+      - $PYTHONUSERBASE
+      - tests/kaitai_struct_formats
+
+  script:
+    - python3 setup.py bdist_wheel
+    - pip3 install --upgrade --pre ./dist/*.whl
+    - mkdir ./wheels
+    - mv ./dist/*.whl ./wheels/kaitaiStructCompile-0.CI-py3-none-any.whl
+    - cd ./tests # in order to isolate from kaitaiStructCompile dir in current dir, which doesn't contain backends, so interferes with them.
+    - coverage run --source=kaitaiStructCompile --branch -m pytest --junitxml=./rspec.xml ./test.py
+    - coverage report -m
+    - coverage xml
+
+  coverage: /^TOTAL(?:\s*\d+){4}\s(\d+%).+/
+
+  artifacts:
+    paths:
+      - wheels
+      - tests/output
+    reports:
+      junit: tests/rspec.xml
+      cobertura: ./coverage.xml
+
+
+.pages: # disabled, remove dot to enable
+  stage: tooling
+  tags:
+    - shared
+    - linux
+  image: alpine:latest
+  allow_failure: true
+  before_script:
+    - apk update
+    - apk add doxygen
+    - apk add ttf-freefont graphviz
+  script:
+    - doxygen ./Doxyfile
+    - mv ./docs/html ./public
+  artifacts:
+    paths:
+      - public
+  only:
+    - master
